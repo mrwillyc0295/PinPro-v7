@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /settings
+Disallow: /wallet
+
+Sitemap: https://pinpro.app/sitemap.xml

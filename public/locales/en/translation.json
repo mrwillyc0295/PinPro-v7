@@ -1,0 +1,13 @@
+{
+  "welcome": "Welcome",
+  "language": "Language",
+  "nav": {
+    "explore": "Explore",
+    "requests": "Requests",
+    "messages": "Messages",
+    "profile": "Profile",
+    "jobs": "Jobs",
+    "wallet": "Wallet",
+    "settings": "Settings"
+  }
+}
