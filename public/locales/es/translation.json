@@ -1,0 +1,13 @@
+{
+  "welcome": "Bienvenido",
+  "language": "Idioma",
+  "nav": {
+    "explore": "Explorar",
+    "requests": "Solicitudes",
+    "messages": "Mensajes",
+    "profile": "Perfil",
+    "jobs": "Trabajos",
+    "wallet": "Billetera",
+    "settings": "Ajustes"
+  }
+}
