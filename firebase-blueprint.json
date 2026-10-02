@@ -1,0 +1,393 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the platform, either a client or a professional.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "description": "Full name" },
+        "email": { "type": "string", "format": "email", "description": "Email address" },
+        "role": { "type": "string", "enum": ["Cliente", "Profesional", "Admin"], "description": "User role" },
+        "country": { "type": "string", "description": "Country of residence" },
+        "state": { "type": "string", "description": "State or region of residence" },
+        "municipality": { "type": "string", "description": "Municipality or sector of residence" },
+        "gender": { "type": "string", "enum": ["Masculino", "Femenino", "Otro"], "description": "Gender" },
+        "age": { "type": "number", "description": "Age in years" },
+        "status": { "type": "string", "enum": ["Activo", "Bloqueado"], "description": "Account status" },
+        "profession": { "type": "string", "description": "Profession (for professionals)" },
+        "bio": { "type": "string", "description": "Biography" },
+        "photoUrl": { "type": "string", "description": "Profile picture URL" },
+        "instagram": { "type": "string", "description": "Instagram handle or URL" },
+        "facebook": { "type": "string", "description": "Facebook handle or URL" },
+        "referralCode": { "type": "string", "description": "Unique referral code" },
+        "isPremium": { "type": "boolean", "description": "Whether the professional has a premium membership" },
+        "subscription_level": { "type": "integer", "description": "Subscription level from 1 to 3", "minimum": 1, "maximum": 3 },
+        "latitude": { "type": "number", "description": "Latitude coordinate for map location" },
+        "longitude": { "type": "number", "description": "Longitude coordinate for map location" },
+        "verificationStatus": { "type": "string", "enum": ["none", "pending", "verified", "rejected"], "description": "Verification status" },
+        "baseScore": { "type": "number", "description": "Base quality score" },
+        "trustBoost": { "type": "number", "description": "Score boost from verification" },
+        "premiumBoost": { "type": "number", "description": "Score boost from premium membership" },
+        "activityBoost": { "type": "number", "description": "Score boost from recent activity" },
+        "locationBoost": { "type": "number", "description": "Score boost from location relevance" },
+        "adminBoost": { "type": "number", "description": "Manual boost from admin" },
+        "adminBoostExpiry": { "type": "string", "format": "date-time", "description": "Expiry for admin boost" },
+        "adminBoostReason": { "type": "string", "description": "Reason for admin boost" },
+        "penalties": { "type": "number", "description": "Score penalties from complaints" },
+        "finalScore": { "type": "number", "description": "Total calculated ranking score" },
+        "rating": { "type": "number", "description": "Average rating from reviews", "default": 5 },
+        "totalReviews": { "type": "integer", "description": "Total number of reviews received", "default": 0 },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["uid", "name", "email", "role", "status", "createdAt", "referralCode"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "A safety or conduct report made against a user.",
+      "type": "object",
+      "properties": {
+        "reporterId": { "type": "string", "description": "UID of the user reporting" },
+        "reportedId": { "type": "string", "description": "UID of the user being reported" },
+        "reason": { "type": "string", "description": "Reason for the report" },
+        "details": { "type": "string", "description": "Detailed explanation" },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "dismissed", "action_taken"], "description": "Status of the report" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["reporterId", "reportedId", "reason", "status", "createdAt"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "A record of a user referred by another user.",
+      "type": "object",
+      "properties": {
+        "referrerId": { "type": "string", "description": "UID of the user who referred" },
+        "referredUserId": { "type": "string", "description": "UID of the user who was referred" },
+        "name": { "type": "string", "description": "Name of the referred user" },
+        "status": { "type": "string", "enum": ["pending", "paid"], "description": "Referral reward status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["referrerId", "referredUserId", "createdAt"]
+    },
+    "Reservation": {
+      "title": "Reservation",
+      "description": "A booking request made by a client for a professional.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string", "description": "UID of the client" },
+        "clientName": { "type": "string", "description": "Name of the client" },
+        "proId": { "type": "string", "description": "UID of the professional" },
+        "proName": { "type": "string", "description": "Name of the professional" },
+        "proProfession": { "type": "string", "description": "Profession of the professional" },
+        "serviceTitle": { "type": "string", "description": "Title of the service requested" },
+        "servicePrice": { "type": "string", "description": "Price of the service" },
+        "date": { "type": "string", "description": "Date and time of the reservation" },
+        "location": { "type": "string", "description": "Location for the service" },
+        "status": { "type": "string", "enum": ["pending", "active", "completed", "cancelled"], "description": "Status of the reservation" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["clientId", "clientName", "proId", "proName", "serviceTitle", "date", "location", "status", "createdAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "A chat conversation between a client and a professional.",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "items": { "type": "string" }, "description": "Array of UIDs of the participants" },
+        "participantNames": { "type": "object", "description": "Map of UID to Name" },
+        "lastMessage": { "type": "string", "description": "Last message text" },
+        "unreadCount": { "type": "object", "description": "Map of UID to unread message count" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["participants", "participantNames", "updatedAt", "createdAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A message within a chat.",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string", "description": "ID of the parent chat" },
+        "senderId": { "type": "string", "description": "UID of the sender" },
+        "text": { "type": "string", "description": "Message text" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["chatId", "senderId", "text", "createdAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A review left by a client for a professional.",
+      "type": "object",
+      "properties": {
+        "reservationId": { "type": "string", "description": "ID of the completed reservation" },
+        "proId": { "type": "string", "description": "UID of the professional" },
+        "clientId": { "type": "string", "description": "UID of the client" },
+        "clientName": { "type": "string", "description": "Name of the client" },
+        "rating": { "type": "number", "description": "Overall rating from 1 to 5" },
+        "punctuality": { "type": "number", "description": "Punctuality rating from 1 to 5" },
+        "professionalism": { "type": "number", "description": "Professionalism rating from 1 to 5" },
+        "communication": { "type": "number", "description": "Communication rating from 1 to 5" },
+        "comment": { "type": "string", "description": "Review comment" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["reservationId", "proId", "clientId", "clientName", "rating", "punctuality", "professionalism", "communication", "comment", "createdAt"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "A support ticket raised by a user.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string", "description": "UID of the user who created the ticket" },
+        "category": { "type": "string", "description": "Category of the issue" },
+        "description": { "type": "string", "description": "Detailed description of the issue" },
+        "status": { "type": "string", "enum": ["OPEN", "RESOLVED"], "description": "Tick status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "resolvedBy": { "type": "string", "description": "Admin UID who resolved the ticket" }
+      },
+      "required": ["clientId", "category", "description", "status", "createdAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "An admin ID record used for RBAC.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "Admin email associated with this UID" }
+      },
+      "required": []
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A notification sent to a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID of the user to notify" },
+        "type": { "type": "string", "enum": ["booking_new", "booking_accepted", "booking_started", "booking_completed", "booking_cancelled", "message_new", "system"], "description": "Notification type" },
+        "title": { "type": "string", "description": "Notification title" },
+        "message": { "type": "string", "description": "Notification message" },
+        "read": { "type": "boolean", "description": "Read status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "relatedId": { "type": "string", "description": "ID of related entity" }
+      },
+      "required": ["userId", "type", "title", "message", "read", "createdAt"]
+    },
+    "Analytics": {
+      "title": "Analytics",
+      "description": "System-wide analytics and statistics.",
+      "type": "object",
+      "properties": {
+        "mobile": { "type": "number", "description": "Count of mobile users" },
+        "tablet": { "type": "number", "description": "Count of tablet users" },
+        "desktop": { "type": "number", "description": "Count of desktop users" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["mobile", "tablet", "desktop", "updatedAt"]
+    },
+    "Request": {
+      "title": "Request",
+      "description": "A general service request posted by a client.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string", "description": "UID of the client" },
+        "serviceType": { "type": "string", "description": "Type of service requested" },
+        "description": { "type": "string", "description": "Description of the request" },
+        "date": { "type": "string", "description": "Requested date" },
+        "location": { "type": "string", "description": "Location" },
+        "status": { "type": "string", "enum": ["pending", "active", "completed", "cancelled"], "description": "Status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "profession": { "type": "string", "description": "Target profession (optional)" },
+        "service": { "type": "string", "description": "Target service (optional)" }
+      },
+      "required": ["clientId", "serviceType", "description", "date", "location", "status", "createdAt"]
+    },
+    "SearchQuery": {
+      "title": "SearchQuery",
+      "description": "A search term entered by a user.",
+      "type": "object",
+      "properties": {
+        "term": { "type": "string", "description": "The search term" },
+        "userId": { "type": "string", "description": "UID of the user (optional)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["term", "createdAt"]
+    },
+    "EmergencyRequest": {
+      "title": "EmergencyRequest",
+      "description": "A high-priority emergency service request.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string", "description": "UID of the client in trouble" },
+        "clientName": { "type": "string", "description": "Name of the client" },
+        "clientLocation": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" },
+            "address": { "type": "string" }
+          }
+        },
+        "professionalId": { "type": "string", "description": "UID of the professional attending (optional if waiting)" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "arrived", "completed", "cancelled"], "description": "Status of the emergency" },
+        "serviceType": { "type": "string", "description": "Type of service needed" },
+        "estimatedCost": { "type": "number", "description": "Estimated cost including emergency fee" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["clientId", "clientName", "clientLocation", "status", "serviceType", "createdAt"]
+    },
+    "TokenTransaction": {
+      "title": "TokenTransaction",
+      "description": "Records representing a token $PIN transaction.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user who owns this transaction" },
+        "amount": { "type": "number", "description": "The amount of tokens transacted" },
+        "description": { "type": "string", "description": "The description or reason of the transaction" },
+        "type": { "type": "string", "enum": ["bonus", "reward"], "description": "Type of transaction" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["userId", "amount", "description", "type", "createdAt"]
+    },
+    "Payout": {
+      "title": "Payout",
+      "description": "Records representing a cash out request of a professional.",
+      "type": "object",
+      "properties": {
+        "proId": { "type": "string", "description": "UID of the professional" },
+        "proName": { "type": "string", "description": "Name of the professional" },
+        "amount": { "type": "number", "description": "Amount withdrawn" },
+        "method": { "type": "string", "description": "Method of payment chosen" },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed"], "description": "Status of the payout" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["proId", "proName", "amount", "method", "status", "createdAt"]
+    },
+    "RenderingError": {
+      "title": "RenderingError",
+      "description": "An error captured during component rendering for remote audit.",
+      "type": "object",
+      "properties": {
+        "errorId": { "type": "string", "description": "Unique log ID" },
+        "componentName": { "type": "string", "description": "Name of the component where error was caught" },
+        "errorMessage": { "type": "string", "description": "Crash message" },
+        "errorStack": { "type": "string", "description": "Error stack trace" },
+        "userId": { "type": "string", "description": "UID of current logged in user (optional/nullable)" },
+        "userEmail": { "type": "string", "description": "Email of current logged in user (optional/nullable)" },
+        "userRole": { "type": "string", "description": "Role of the user (optional/nullable)" },
+        "url": { "type": "string", "description": "The URL the user was on" },
+        "userAgent": { "type": "string", "description": "Browser user agent" },
+        "retryCount": { "type": "number", "description": "Number of retries" },
+        "resolved": { "type": "boolean", "description": "Whether the bug has been marked as resolved" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of error" }
+      },
+      "required": ["errorId", "componentName", "errorMessage", "createdAt"]
+    },
+    "SystemSetting": {
+      "title": "SystemSetting",
+      "description": "App configurations and alert thresholds managed by administrators.",
+      "type": "object",
+      "properties": {
+        "settingId": { "type": "string", "description": "Setting document unique identifier" },
+        "threshold": { "type": "number", "description": "The critical threshold percentage or count for rendering errors" },
+        "metricType": { "type": "string", "description": "Specific metric type to evaluate against the threshold (e.g., count, percentage)" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" },
+        "updatedBy": { "type": "string", "description": "The UID of the administrator who performed the update" }
+      },
+      "required": ["settingId", "threshold", "metricType", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/emergencies/{emergencyId}": {
+      "schema": { "$ref": "#/entities/EmergencyRequest" },
+      "description": "Stores real-time high-priority emergency requests"
+    },
+    "/search_queries/{queryId}": {
+      "schema": { "$ref": "#/entities/SearchQuery" },
+      "description": "Logs of user search terms for SEO"
+    },
+    "/requests/{requestId}": {
+      "schema": { "$ref": "#/entities/Request" },
+      "description": "General service requests"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "User notifications"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "Admin privileges store"
+    },
+    "/support_tickets/{ticketId}": {
+      "schema": { "$ref": "#/entities/SupportTicket" },
+      "description": "Stores support tickets for RBAC demonstration"
+    },
+    "/clientes/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores client profiles"
+    },
+    "/profesionales/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores professional profiles"
+    },
+    "/reservations/{reservationId}": {
+      "schema": { "$ref": "#/entities/Reservation" },
+      "description": "Stores service reservations"
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/Chat" },
+      "description": "Stores chat conversations"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Stores individual chat messages"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Stores professional reviews"
+    },
+    "/system_analytics/{docId}": {
+      "schema": { "$ref": "#/entities/Analytics" },
+      "description": "System-wide tracking data"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/Report" },
+      "description": "Stores user reports/complaints"
+    },
+    "/referrals/{referralId}": {
+      "schema": { "$ref": "#/entities/Referral" },
+      "description": "Stores user referral records"
+    },
+    "/whatsapp_contacts/{userId}": {
+      "schema": {
+        "title": "WhatsAppContact",
+        "description": "Stores contact information for WhatsApp leads and captured users.",
+        "type": "object",
+        "properties": {
+          "uid": { "type": "string" },
+          "name": { "type": "string" },
+          "phone": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string" },
+          "type": { "type": "string", "enum": ["lead", "registered"] }
+        },
+        "required": ["uid", "name", "phone"]
+      },
+      "description": "Stores WhatsApp contact data for marketing and lead tracking."
+    },
+    "/token_transactions/{txId}": {
+      "schema": { "$ref": "#/entities/TokenTransaction" },
+      "description": "Stores user token $PIN transaction ledger records"
+    },
+    "/payouts/{payoutId}": {
+      "schema": { "$ref": "#/entities/Payout" },
+      "description": "Stores payout withdrawal requests"
+    },
+    "/rendering_errors/{errorId}": {
+      "schema": { "$ref": "#/entities/RenderingError" },
+      "description": "Stores rendering and UI crash telemetry logs"
+    },
+    "/system_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/SystemSetting" },
+      "description": "Stores site-wide system settings and admin alert thresholds"
+    }
+  }
+}

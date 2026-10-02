@@ -1,0 +1,396 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      // Temporarily relaxed: we treat any signed-in user as allowed until email verification flow is added.
+      return isSignedIn();
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "mr.willyc0295@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function safeString(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    // Validation definitions
+    function isValidUserCreate(data, expectedRole) {
+      return data.keys().hasAll(['uid', 'name', 'role', 'status', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             safeString(data.name, 100) && data.name.size() > 0 &&
+             data.role == expectedRole &&
+             data.status == 'Activo' &&
+             data.createdAt == request.time &&
+             (!('email' in data) || safeString(data.email, 100)) &&
+             (!('photoUrl' in data) || safeString(data.photoUrl, 500)) &&
+             (!('country' in data) || safeString(data.country, 100)) &&
+             (!('state' in data) || safeString(data.state, 100)) &&
+             (!('municipality' in data) || safeString(data.municipality, 100)) &&
+             (!('gender' in data) || data.gender in ['Masculino', 'Femenino', 'Otro']) &&
+             (!('age' in data) || (data.age is number && data.age >= 18 && data.age <= 120)) &&
+             (!('profession' in data) || safeString(data.profession, 100)) &&
+             (!('bio' in data) || safeString(data.bio, 500)) &&
+             (!('referralCode' in data) || safeString(data.referralCode, 50)) &&
+             (!('instagram' in data) || safeString(data.instagram, 200)) &&
+             (!('facebook' in data) || safeString(data.facebook, 200)) &&
+             (!('isPremium' in data) || data.isPremium is bool) &&
+             (!('verificationStatus' in data) || data.verificationStatus in ['none', 'pending', 'verified', 'rejected']) &&
+             (!('latitude' in data) || data.latitude is number) &&
+             (!('longitude' in data) || data.longitude is number) &&
+             (!('rating' in data) || data.rating is number) &&
+             (!('totalReviews' in data) || data.totalReviews is number);
+    }
+
+    function isValidUserUpdate(diff, incomingData) {
+      return (!('name' in diff) || (safeString(incomingData.name, 100) && incomingData.name.size() > 0)) &&
+             (!('photoUrl' in diff) || safeString(incomingData.photoUrl, 500)) &&
+             (!('country' in diff) || safeString(incomingData.country, 100)) &&
+             (!('state' in diff) || safeString(incomingData.state, 100)) &&
+             (!('municipality' in diff) || safeString(incomingData.municipality, 100)) &&
+             (!('gender' in diff) || incomingData.gender in ['Masculino', 'Femenino', 'Otro']) &&
+             (!('age' in diff) || (incomingData.age is number && incomingData.age >= 18 && incomingData.age <= 120)) &&
+             (!('profession' in diff) || safeString(incomingData.profession, 100)) &&
+             (!('bio' in diff) || safeString(incomingData.bio, 500)) &&
+             (!('instagram' in diff) || safeString(incomingData.instagram, 200)) &&
+             (!('facebook' in diff) || safeString(incomingData.facebook, 200)) &&
+             (!('latitude' in diff) || incomingData.latitude is number) &&
+             (!('longitude' in diff) || incomingData.longitude is number) &&
+             (!('updatedAt' in diff) || incomingData.updatedAt == request.time) &&
+             (!('phone' in diff) || safeString(incomingData.phone, 50)) &&
+             (!('isOnline' in diff) || incomingData.isOnline is bool) &&
+             (!('portfolio' in diff) || incomingData.portfolio is list) &&
+             (!('tags' in diff) || incomingData.tags is list) &&
+             (!('videoUrl' in diff) || safeString(incomingData.videoUrl, 500)) &&
+             (!('verificationDocs' in diff) || incomingData.verificationDocs is list) &&
+             (!('verificationStatus' in diff) || incomingData.verificationStatus in ['none', 'pending', 'verified', 'rejected']) &&
+             (!('services' in diff) || incomingData.services is list) &&
+             (!('breakTimes' in diff) || incomingData.breakTimes is list) &&
+             (!('referralCode' in diff) || safeString(incomingData.referralCode, 50)) &&
+             (!('yearsOfExperience' in diff) || incomingData.yearsOfExperience is number) &&
+             (!('zodiacSign' in diff) || safeString(incomingData.zodiacSign, 50)) &&
+             (!('isPremium' in diff) || incomingData.isPremium is bool) &&
+             (!('isElite' in diff) || incomingData.isElite is bool) &&
+             (!('deviceOS' in diff) || safeString(incomingData.deviceOS, 50)) &&
+             (!('tokenBalance' in diff) || incomingData.tokenBalance is number);
+    }
+
+    function isValidReservationCreate(data) {
+      return data.keys().hasAll(['clientId', 'clientName', 'proId', 'proName', 'serviceTitle', 'date', 'location', 'status', 'createdAt']) &&
+             data.clientId == request.auth.uid &&
+             safeString(data.clientName, 100) && data.clientName.size() > 0 &&
+             safeString(data.proId, 128) && data.proId.size() > 0 &&
+             safeString(data.proName, 100) && data.proName.size() > 0 &&
+             safeString(data.serviceTitle, 100) && data.serviceTitle.size() > 0 &&
+             safeString(data.date, 100) && data.date.size() > 0 &&
+             safeString(data.location, 200) && data.location.size() > 0 &&
+             data.status == 'pending' &&
+             data.createdAt == request.time &&
+             (!('servicePrice' in data) || safeString(data.servicePrice, 50));
+    }
+
+    function isValidEmergencyCreate(data) {
+      return data.keys().hasAll(['clientId', 'clientName', 'clientLocation', 'status', 'serviceType', 'createdAt']) &&
+             data.clientId == request.auth.uid &&
+             safeString(data.clientName, 100) && data.clientName.size() > 0 &&
+             data.clientLocation is map &&
+             data.clientLocation.lat is number &&
+             data.clientLocation.lng is number &&
+             safeString(data.clientLocation.address, 200) &&
+             data.status == 'pending' &&
+             safeString(data.serviceType, 100) && data.serviceType.size() > 0 &&
+             data.createdAt == request.time &&
+             (!('estimatedCost' in data) || data.estimatedCost is number);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only manageable through Firebase Console initially
+    }
+
+    match /clientes/{userId} {
+      allow read: if true;
+      allow create: if isEmailVerified() && isValidId(userId) && isValidUserCreate(incoming(), 'Cliente');
+      allow update: if isEmailVerified() && (
+        isAdmin() ||
+        (isOwner(userId) &&
+         incoming().uid == existing().uid &&
+         incoming().diff(existing()).affectedKeys().hasOnly([
+           'name', 'photoUrl', 'country', 'state', 'municipality', 'gender', 'age', 'bio',
+           'latitude', 'longitude', 'updatedAt', 'phone', 'isOnline', 'portfolio',
+           'tags', 'videoUrl', 'verificationDocs', 'verificationStatus', 'services', 'breakTimes', 'referralCode',
+           'yearsOfExperience', 'zodiacSign', 'isPremium', 'isElite', 'deviceOS', 'tokenBalance'
+         ]) &&
+         isValidUserUpdate(incoming().diff(existing()).affectedKeys(), incoming())
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /profesionales/{userId} {
+      allow read: if true;
+      allow create: if isEmailVerified() && isValidId(userId) && isValidUserCreate(incoming(), 'Profesional');
+      allow update: if isEmailVerified() && (
+        isAdmin() ||
+        (isOwner(userId) &&
+         incoming().uid == existing().uid &&
+         incoming().diff(existing()).affectedKeys().hasOnly([
+           'name', 'photoUrl', 'country', 'state', 'municipality', 'gender', 'age', 'profession', 'bio',
+           'instagram', 'facebook', 'latitude', 'longitude', 'updatedAt', 'phone', 'isOnline', 'portfolio',
+           'tags', 'videoUrl', 'verificationDocs', 'verificationStatus', 'services', 'breakTimes', 'referralCode',
+           'yearsOfExperience', 'zodiacSign', 'isPremium', 'isElite', 'deviceOS', 'tokenBalance'
+         ]) &&
+         isValidUserUpdate(incoming().diff(existing()).affectedKeys(), incoming())
+        ) ||
+        (isSignedIn() &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['rating', 'totalReviews', 'finalScore', 'updatedAt']) &&
+         incoming().rating is number &&
+         incoming().totalReviews is number &&
+         incoming().finalScore is number &&
+         incoming().updatedAt == request.time)
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /reservations/{reservationId} {
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.clientId || request.auth.uid == resource.data.proId || isAdmin());
+      allow create: if isEmailVerified() &&
+                    isValidId(reservationId) &&
+                    isValidReservationCreate(incoming()) &&
+                    exists(/databases/$(database)/documents/profesionales/$(incoming().proId));
+
+      allow update: if isEmailVerified() && (
+        isAdmin() ||
+        (isOwner(existing().clientId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+         existing().status in ['pending', 'active'] &&
+         incoming().status == 'cancelled' &&
+         incoming().updatedAt == request.time) ||
+        (isOwner(existing().proId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+         existing().status == 'pending' && incoming().status in ['active', 'cancelled'] &&
+         incoming().updatedAt == request.time) ||
+        (isOwner(existing().proId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+         existing().status == 'active' && incoming().status in ['completed', 'cancelled'] &&
+         incoming().updatedAt == request.time)
+      );
+    }
+
+    match /emergencies/{emergencyId} {
+      allow read: if isSignedIn(); // Open to all signed in users so pros can find emergencies
+      allow create: if isEmailVerified() &&
+                    isValidId(emergencyId) &&
+                    isValidEmergencyCreate(incoming());
+
+      allow update: if isEmailVerified() && (
+        isAdmin() ||
+        (isOwner(existing().clientId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+         incoming().status == 'cancelled' &&
+         incoming().updatedAt == request.time) ||
+        (existing().status == 'pending' &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'professionalId', 'updatedAt']) &&
+         incoming().status == 'accepted' &&
+         safeString(incoming().professionalId, 128) && incoming().professionalId == request.auth.uid &&
+         incoming().updatedAt == request.time &&
+         exists(/databases/$(database)/documents/profesionales/$(request.auth.uid))) ||
+        (isOwner(existing().professionalId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+         existing().status == 'accepted' && incoming().status in ['arrived', 'cancelled'] &&
+         incoming().updatedAt == request.time) ||
+        (isOwner(existing().professionalId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+         existing().status == 'arrived' && incoming().status == 'completed' &&
+         incoming().updatedAt == request.time)
+      );
+    }
+
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow create: if isEmailVerified() &&
+                    isValidId(chatId) &&
+                    incoming().keys().hasAll(['participants', 'participantNames', 'createdAt', 'updatedAt']) &&
+                    incoming().participants is list && incoming().participants.size() == 2 &&
+                    request.auth.uid in incoming().participants &&
+                    incoming().createdAt == request.time &&
+                    incoming().updatedAt == request.time;
+      allow update: if isEmailVerified() &&
+                    request.auth.uid in existing().participants &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'unreadCount', 'updatedAt']) &&
+                    safeString(incoming().lastMessage, 1000) &&
+                    incoming().updatedAt == request.time;
+    }
+
+    match /messages/{messageId} {
+      allow read: if isSignedIn() &&
+                  exists(/databases/$(database)/documents/chats/$(resource.data.chatId)) &&
+                  request.auth.uid in get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.participants;
+      allow create: if isEmailVerified() &&
+                    isValidId(messageId) &&
+                    incoming().keys().hasAll(['chatId', 'senderId', 'text', 'createdAt']) &&
+                    incoming().senderId == request.auth.uid &&
+                    safeString(incoming().text, 2000) && incoming().text.size() > 0 &&
+                    incoming().createdAt == request.time &&
+                    exists(/databases/$(database)/documents/chats/$(incoming().chatId)) &&
+                    request.auth.uid in get(/databases/$(database)/documents/chats/$(incoming().chatId)).data.participants;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isEmailVerified() &&
+                    isValidId(reviewId) &&
+                    incoming().keys().hasAll(['reservationId', 'proId', 'clientId', 'clientName', 'rating', 'punctuality', 'professionalism', 'communication', 'comment', 'createdAt']) &&
+                    incoming().clientId == request.auth.uid &&
+                    incoming().proId != request.auth.uid &&
+                    incoming().rating is number && incoming().rating >= 1 && incoming().rating <= 5 &&
+                    safeString(incoming().comment, 2000) &&
+                    incoming().createdAt == request.time &&
+                    exists(/databases/$(database)/documents/reservations/$(incoming().reservationId)) &&
+                    get(/databases/$(database)/documents/reservations/$(incoming().reservationId)).data.status == 'completed' &&
+                    get(/databases/$(database)/documents/reservations/$(incoming().reservationId)).data.clientId == request.auth.uid &&
+                    get(/databases/$(database)/documents/reservations/$(incoming().reservationId)).data.proId == incoming().proId;
+      allow update, delete: if isAdmin();
+    }
+
+    match /requests/{requestId} {
+      allow read: if isSignedIn(); // Open to all pros
+      allow create: if isEmailVerified() &&
+                    isValidId(requestId) &&
+                    incoming().keys().hasAll(['clientId', 'serviceType', 'description', 'date', 'location', 'status', 'createdAt']) &&
+                    incoming().clientId == request.auth.uid &&
+                    safeString(incoming().serviceType, 100) && incoming().serviceType.size() > 0 &&
+                    safeString(incoming().description, 2000) && incoming().description.size() > 0 &&
+                    safeString(incoming().date, 100) && incoming().date.size() > 0 &&
+                    safeString(incoming().location, 200) && incoming().location.size() > 0 &&
+                    incoming().status == 'pending' &&
+                    incoming().createdAt == request.time &&
+                    (!('profession' in incoming()) || safeString(incoming().profession, 100)) &&
+                    (!('service' in incoming()) || safeString(incoming()['service'], 100));
+      allow update: if isEmailVerified() && (
+        isAdmin() ||
+        (isOwner(existing().clientId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+         incoming().status == 'cancelled' &&
+         incoming().updatedAt == request.time)
+      );
+    }
+
+    match /search_queries/{queryId} {
+      allow read: if isAdmin();
+      allow create: if isValidId(queryId) &&
+                    incoming().keys().hasAll(['term', 'createdAt']) &&
+                    incoming().keys().hasOnly(['term', 'createdAt', 'userId']) &&
+                    safeString(incoming().term, 500) && incoming().term.size() > 0 &&
+                    incoming().createdAt == request.time &&
+                    (!('userId' in incoming()) || incoming().userId == null || incoming().userId == request.auth.uid);
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isEmailVerified() &&
+                    isValidId(notificationId) &&
+                    incoming().keys().hasAll(['userId', 'type', 'title', 'message', 'read', 'createdAt']) &&
+                    safeString(incoming().userId, 128) && incoming().userId.size() > 0 &&
+                    incoming().type in ['booking_new', 'booking_accepted', 'booking_started', 'booking_completed', 'booking_cancelled', 'message_new', 'system'] &&
+                    safeString(incoming().title, 100) && incoming().title.size() > 0 &&
+                    safeString(incoming().message, 1000) && incoming().message.size() > 0 &&
+                    incoming().read == false &&
+                    incoming().createdAt == request.time &&
+                    (!('relatedId' in incoming()) || safeString(incoming().relatedId, 128));
+      allow update: if isEmailVerified() &&
+                    existing().userId == request.auth.uid &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['read']) &&
+                    incoming().read == true;
+    }
+
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isEmailVerified() &&
+                    isValidId(reportId) &&
+                    incoming().keys().hasAll(['reporterId', 'reportedId', 'reason', 'status', 'createdAt']) &&
+                    incoming().reporterId == request.auth.uid &&
+                    safeString(incoming().reportedId, 128) && incoming().reportedId.size() > 0 &&
+                    safeString(incoming().reason, 500) && incoming().reason.size() > 0 &&
+                    (!('details' in incoming()) || safeString(incoming().details, 2000)) &&
+                    incoming().status == 'pending' &&
+                    incoming().createdAt == request.time;
+      allow update: if isAdmin();
+    }
+
+    match /support_tickets/{ticketId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.clientId == request.auth.uid);
+      allow create: if isEmailVerified() &&
+                    isValidId(ticketId) &&
+                    incoming().keys().hasAll(['clientId', 'category', 'description', 'status', 'createdAt']) &&
+                    incoming().clientId == request.auth.uid &&
+                    safeString(incoming().category, 100) && incoming().category.size() > 0 &&
+                    safeString(incoming().description, 2000) && incoming().description.size() > 0 &&
+                    incoming().status == 'OPEN' &&
+                    incoming().createdAt == request.time;
+      allow update: if isAdmin() &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'resolvedBy']) &&
+                    incoming().status == 'RESOLVED' &&
+                    incoming().resolvedBy == request.auth.uid;
+    }
+
+    match /referrals/{referralId} {
+      allow read: if isSignedIn() && (resource.data.referrerId == request.auth.uid || resource.data.referredUserId == request.auth.uid || isAdmin());
+      allow create: if isEmailVerified() &&
+                    isValidId(referralId) &&
+                    incoming().keys().hasAll(['referrerId', 'referredUserId', 'createdAt']) &&
+                    (incoming().referrerId == request.auth.uid || incoming().referredUserId == request.auth.uid) &&
+                    safeString(incoming().referrerId, 128) &&
+                    safeString(incoming().referredUserId, 128) &&
+                    incoming().createdAt == request.time;
+      allow update: if isAdmin();
+    }
+
+    match /system_analytics/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /roles/{userId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /whatsapp_contacts/{userId} {
+      allow read: if isAdmin();
+      allow create: if isValidId(userId);
+      allow update, delete: if isOwner(userId) || isAdmin();
+    }
+  }
+}

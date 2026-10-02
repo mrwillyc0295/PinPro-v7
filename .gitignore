@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-ssr/
+package-lock.json
+*.local
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+remix_-remix_-pinpro (4).zip
+remix_-remix_-remix_-pinpro.zip
