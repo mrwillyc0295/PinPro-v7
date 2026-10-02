@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "device_analytics": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}

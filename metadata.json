@@ -1,0 +1,9 @@
+{
+  "name": "Remix: Remix: Remix: PinPro",
+  "description": "PinPro: La plataforma líder en servicios profesionales con geolocalización. Encuentra expertos locales, médicos y técnicos cerca de ti al instante.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone",
+    "notifications"
+  ]
+}

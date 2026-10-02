@@ -1,0 +1,32 @@
+{
+  "short_name": "PinPro",
+  "name": "PinPro: Servicios Profesionales",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1063/1063376.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1063/1063376.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/?utm_source=pwa",
+  "background_color": "#0a0a0a",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#00FFFF",
+  "description": "Plataforma de servicios profesionales y emergencias en tiempo real con geolocalización.",
+  "shortcuts": [
+    {
+      "name": "Ver Mensajes",
+      "url": "/messages",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/1063/1063376.png", "sizes": "192x192" }]
+    }
+  ],
+  "orientation": "portrait"
+}
